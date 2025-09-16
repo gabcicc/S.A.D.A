@@ -6,7 +6,7 @@
 
 - **Project**: CNR–ISPC · PNRR “CHANGES” (Spoke 5)
 - **Focus**: accessible remote‑sensing analysis for archaeology (non‑invasive prospection, monitoring, landscape analysis)
-- **Status**: v1.5 (beta)
+- **Status**: v1.5 
 - **Platforms**: Windows · macOS · Linux
 - **License**: see `LICENSE` (recommended: GPL‑3.0‑or‑later)
 
