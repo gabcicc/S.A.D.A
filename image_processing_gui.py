@@ -16,6 +16,7 @@ class ImageProcessingGUI:
         self.pan_start_x = 0
         self.pan_start_y = 0
         self.scale_factor = 1.0
+        self.base_display_image = None  # PIL.Image resized-to-fit used as zoom baseline
         self.parent.tick_ids = []  # Per memorizzare gli ID dei tick e delle etichette
         self.parent.scalebar_ids = []  # Per memorizzare gli ID della barra di scala
         self.selection_mask = None
@@ -90,6 +91,8 @@ class ImageProcessingGUI:
         if not hasattr(self.parent, "original_image_pil") or self.parent.original_image_pil is None:
             self.parent.original_image_pil = pil_img.copy()
         self.parent.scale_factor = 1.0
+        # Reset zoom baseline/state every time we render a fresh image on the main canvas
+        self.scale_factor = 1.0
 
         canvas_width = self.parent.canvas.winfo_width()
         canvas_height = self.parent.canvas.winfo_height()
@@ -115,6 +118,9 @@ class ImageProcessingGUI:
             scale_factor = 1.0
 
         self.parent.effective_scale_factor = scale_factor
+
+        # Baseline image for zoom/pan: the exact resized-to-fit image currently displayed
+        self.base_display_image = pil_img.copy()
 
         # Crea l'oggetto Tkinter PhotoImage
         self.parent.tk_image = ImageTk.PhotoImage(pil_img)
@@ -157,7 +163,7 @@ class ImageProcessingGUI:
         )
 
         # (1) Imposta current_image SEMPRE (così lo zoom/pan funziona anche su non-geotiff)
-        self.parent.current_image = pil_img.copy()
+        self.parent.current_image = self.base_display_image.copy() if self.base_display_image is not None else pil_img.copy()
 
         # --- Remove legacy offset computation ---
         # self.parent.x_offset = x_offset - (canvas_width - img_width) // 2
@@ -840,6 +846,8 @@ class ImageProcessingGUI:
 
         self.parent.canvas.delete("all")
         self.parent.scale_factor = 1.0
+        self.scale_factor = 1.0
+        self.base_display_image = None
         self.parent.x_offset = 0
         self.parent.y_offset = 0
 
@@ -869,35 +877,43 @@ class ImageProcessingGUI:
         self.reset_pan()
 
     def zoom_in(self):
-        if not hasattr(self.parent, "current_image") or self.parent.current_image is None:
-            print("Errore: Nessuna immagine corrente trovata per zoom.")
-            return
+        # Serve una baseline (immagine già ridimensionata per stare nel canvas)
+        if self.base_display_image is None:
+            if hasattr(self.parent, "current_image") and self.parent.current_image is not None:
+                # fallback (meglio avere base_display_image settata da display_image_on_canvas)
+                self.base_display_image = self.parent.current_image.copy()
+            else:
+                print("Errore: Nessuna immagine trovata per zoom.")
+                return
 
-        # Incrementa il fattore di scala
-        if not hasattr(self, "scale_factor"):
-            self.scale_factor = 1.0
+        # Incrementa il fattore di scala (relativo alla baseline)
         self.scale_factor *= 1.2
 
-        # Calcola le nuove dimensioni e ritaglia l'immagine
-        image_to_zoom = self.parent.current_image
-        new_width = int(image_to_zoom.width * 1.2)
-        new_height = int(image_to_zoom.height * 1.2)
-        zoomed_image = image_to_zoom.resize((new_width, new_height), Image.LANCZOS)
+        base = self.base_display_image
+        base_w, base_h = base.size
+
+        new_w = max(1, int(base_w * self.scale_factor))
+        new_h = max(1, int(base_h * self.scale_factor))
+        zoomed_image = base.resize((new_w, new_h), Image.LANCZOS)
+
+        # Ritaglia al centro per mantenere la stessa finestra di visualizzazione (display_w/display_h)
         display_w, display_h = self.parent.display_w, self.parent.display_h
-        left = (new_width - display_w) // 2
-        upper = (new_height - display_h) // 2
-        right = left + display_w
-        lower = upper + display_h
+        left = max((new_w - display_w) // 2, 0)
+        upper = max((new_h - display_h) // 2, 0)
+        right = min(left + display_w, new_w)
+        lower = min(upper + display_h, new_h)
         cropped_image = zoomed_image.crop((left, upper, right, lower))
 
-        # Aggiorna l'immagine e il canvas
+        # Aggiorna lo stato (offset per pan/ticks in coordinate della zoomed_image)
         self.parent.current_image = zoomed_image
+        self.parent.x_offset = left
+        self.parent.y_offset = upper
+
+        # Aggiorna canvas
         self.parent.tk_image = ImageTk.PhotoImage(cropped_image)
         self.parent.canvas.itemconfig(self.canvas_image, image=self.parent.tk_image)
 
-        # Stato aggiornato
         self.parent.update_status(f"Zoomed in: {self.scale_factor:.2f}x")
-
         self.update_ticks_and_scalebar(self.parent.x_offset, self.parent.y_offset, self.scale_factor)
         self.parent.zoom_out_button.config(state=tk.NORMAL)
 
@@ -930,54 +946,61 @@ class ImageProcessingGUI:
             self.canvas.move("all", offset_x, offset_y)
 
     def zoom_out(self):
-        if not hasattr(self.parent, "current_image") or self.parent.current_image is None:
-            print("Errore: Nessuna immagine corrente trovata per zoom.")
-            return
+        if self.base_display_image is None:
+            if hasattr(self.parent, "current_image") and self.parent.current_image is not None:
+                self.base_display_image = self.parent.current_image.copy()
+            else:
+                print("Errore: Nessuna immagine trovata per zoom.")
+                return
 
-        if not hasattr(self, "scale_factor"):
-            self.scale_factor = 1.0
-
-            # Calcola il nuovo tentativo di fattore di scala
         new_scale = self.scale_factor / 1.2
 
-        # Se il nuovo fattore scenderebbe sotto 1.0, lo blocchiamo a 1.0
-        if new_scale < 1.0:
-            new_scale = 1.0
+        # Se scendiamo a 1.0 (o sotto), reset completo: torna ESATTAMENTE alla baseline
+        if new_scale <= 1.0:
+            self.scale_factor = 1.0
+            base = self.base_display_image
 
-        # Se, dopo la correzione, non cambia niente (eravamo già a 1.0), si può uscire direttamente
-        if new_scale == self.scale_factor:
-            print("[DEBUG] Zoom out limit reached (scale=1.0). Nothing to do.")
+            self.parent.current_image = base.copy()
+            self.parent.x_offset = 0
+            self.parent.y_offset = 0
+
+            self.parent.tk_image = ImageTk.PhotoImage(base)
+            self.parent.canvas.itemconfig(self.canvas_image, image=self.parent.tk_image)
+
+            self.parent.update_status("Zoomed out: 1.00x")
+            self.update_ticks_and_scalebar(self.parent.x_offset, self.parent.y_offset, self.scale_factor)
             self.parent.zoom_out_button.config(state=tk.DISABLED)
             return
 
-        # Aggiorna lo scale_factor
+        # Aggiorna lo scale_factor e ridisegna partendo SEMPRE dalla baseline
         self.scale_factor = new_scale
 
-        # Calcola le nuove dimensioni
-        image_to_zoom = self.parent.current_image
-        new_width = int(image_to_zoom.width / 1.2)
-        new_height = int(image_to_zoom.height / 1.2)
+        base = self.base_display_image
+        base_w, base_h = base.size
 
-        # Ridimensiona l'immagine
-        zoomed_image = image_to_zoom.resize((new_width, new_height), Image.LANCZOS)
+        new_w = max(1, int(base_w * self.scale_factor))
+        new_h = max(1, int(base_h * self.scale_factor))
+        zoomed_image = base.resize((new_w, new_h), Image.LANCZOS)
 
-        # Ritaglia l'immagine per adattarla alle dimensioni del canvas
         display_w, display_h = self.parent.display_w, self.parent.display_h
-        left = max((new_width - display_w) // 2, 0)
-        upper = max((new_height - display_h) // 2, 0)
-        right = min(left + display_w, new_width)
-        lower = min(upper + display_h, new_height)
+        left = max((new_w - display_w) // 2, 0)
+        upper = max((new_h - display_h) // 2, 0)
+        right = min(left + display_w, new_w)
+        lower = min(upper + display_h, new_h)
         cropped_image = zoomed_image.crop((left, upper, right, lower))
 
-        # Aggiorna l'immagine e il canvas
         self.parent.current_image = zoomed_image
+        self.parent.x_offset = left
+        self.parent.y_offset = upper
+
         self.parent.tk_image = ImageTk.PhotoImage(cropped_image)
         self.parent.canvas.itemconfig(self.canvas_image, image=self.parent.tk_image)
 
-        # Stato aggiornato
         self.parent.update_status(f"Zoomed out: {self.scale_factor:.2f}x")
-
         self.update_ticks_and_scalebar(self.parent.x_offset, self.parent.y_offset, self.scale_factor)
+
+        if self.scale_factor <= 1.000001:
+            self.parent.zoom_out_button.config(state=tk.DISABLED)
 
     def zoom_to_selection(self):
         if self.parent.image is None:
