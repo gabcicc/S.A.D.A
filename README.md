@@ -151,9 +151,9 @@ Contributions are welcome!
 ## Citation
 If you use SADA in research, please cite the software and this repository:
 ```
-Ciccone, Gabriele, et al. SADA — Smart Anomaly Detection Assistant, v1.5.
+Ciccone, Gabriele, et al. SADA — Smart Anomaly Detection Assistant.
 GitHub repository, 2025. https://github.com/gabcicc/S.A.D.A
-
+```
 
 ---
 
