@@ -177,6 +177,5 @@ Portions of the codebase were **co‑developed with ChatGPT** for rapid prototyp
 ---
 
 ## Contact
-**Testing or contributing?** Write to **gabriele.ciccone@cnr.it**.  
-Public GitHub repository coming soon.
+**Testing or contributing?** Write to **gabriele.ciccone@cnr.it**. 
 
