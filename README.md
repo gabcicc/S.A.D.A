@@ -153,7 +153,22 @@ If you use SADA in research, please cite the software and this repository:
 ```
 Ciccone, Gabriele, et al. SADA — Smart Anomaly Detection Assistant, v1.5.
 GitHub repository, 2025. https://github.com/<your-org>/SADA
+
 ```
+
+
+---
+
+## Bibliography
+```
+Ciccone, Gabriele, et al. Bridging the Remote Sensing Gap in Archaeology: The S.A.D.A. Platform for
+Accessible Remote Sensing Images Analysis, in press
+
+Ciccone, Gabriele. ChatGPT as a Digital Assistant for Archaeology: Insights from the Smart Anomaly Detection Assistant Development.
+Heritage. 2024; 7(10):5428-5445., 2024.
+
+```
+
 
 ---
 
