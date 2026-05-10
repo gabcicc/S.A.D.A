@@ -1,6 +1,6 @@
 ![SADA intro](images/intro_gui.png)
 
-# Smart Anomaly Detection Assistant (SADA) · v1.5
+# Smart Anomaly Detection Assistant (S.A.D.A.) 
 
 > **SADA** is a free, open‑source desktop application that helps archaeologists analyse aerial/satellite imagery and produce **GIS‑ready anomaly layers**. It consolidates pre‑processing, anomaly detection, spatial statistics, editing, and export into a single, intuitive, **human‑in‑the‑loop** workflow.
 
