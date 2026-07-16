@@ -159,8 +159,10 @@ GitHub repository, 2025. https://github.com/gabcicc/S.A.D.A
 
 ## Bibliography
 ```
-Ciccone, Gabriele, et al. Bridging the Remote Sensing Gap in Archaeology: The S.A.D.A. Platform for
-Accessible Remote Sensing Images Analysis, in press
+Gabriele Ciccone, Nicodemo Abate, Alessia Frisetti, Antonio Minervino Amodio, Rosa Lasaponara, Nicola Masini,
+Bridging the gap between contemporary remote sensing and archaeology: The S.A.D.A. platform for accessible remote-sensing image analysis,
+Journal of Cultural Heritage, Volume 81, 2026,Pages 20-35,ISSN 1296-2074,https://doi.org/10.1016/j.culher.2026.06.026.
+(https://www.sciencedirect.com/science/article/pii/S1296207426001317)
 
 Ciccone, Gabriele. ChatGPT as a Digital Assistant for Archaeology: Insights from the Smart Anomaly Detection Assistant Development.
 Heritage. 2024; 7(10):5428-5445., 2024.
